@@ -10,7 +10,7 @@ from prettytable import PrettyTable
 from HW09_Mansi_Padalia import Repository, Student, Instructor, Major, read_file_generator
 
 
-class TestRpository(unittest.TestCase):
+class TestRepository(unittest.TestCase):
     """ Test class to perform test over university repository """
 
     def test_read_file_generator(self):
@@ -87,15 +87,15 @@ class TestRpository(unittest.TestCase):
         expected_instructor_table = PrettyTable(
             field_names=['CWID', 'Name', 'Dept', 'Course', 'Students'])
         expected_instructor_table.add_row(
+            [1, 'Einstein, A', 'CS', 'CS 510', 1])
+        expected_instructor_table.add_row(
             [1, 'Einstein, A', 'CS', 'SSW 500', 3])
         expected_instructor_table.add_row(
             [1, 'Einstein, A', 'CS', 'SSW 510', 2])
         expected_instructor_table.add_row(
-            [1, 'Einstein, A', 'CS', 'CS 510', 1])
+            [2, 'Feynman, R', 'SSW', 'CS 510', 1])
         expected_instructor_table.add_row(
             [2, 'Feynman, R', 'SSW', 'CS 520', 1])
-        expected_instructor_table.add_row(
-            [2, 'Feynman, R', 'SSW', 'CS 510', 1])
         expected_instructor_table.add_row(
             [2, 'Feynman, R', 'SSW', 'SSW 520', 1])
         expected_instructor_table.add_row(
@@ -108,6 +108,18 @@ class TestRpository(unittest.TestCase):
             [4, 'Hawking, S', 'CS', 'SSW 540', 1])
         self.assertEqual(expected_instructor_table.get_string(),
                          test_repository.instructor_table().get_string())
+
+
+class TestRepositoryDB(unittest.TestCase):
+    """ Test class to perform test over stevens repository with database """
+
+    def test_create_repository_with_db(self):
+        """ verify that the data retrieved from the database matches the expected rows """
+        stevens_directory = '/Volumes/Macintosh HD/Users/pratik/Courses/SSW810A/PythonProject/Stevens'
+        DB_FILE = '/Volumes/Macintosh HD/Users/pratik/ssw810a.db'
+        stevens_repository = Repository(stevens_directory)
+        self.assertEqual(stevens_repository.instructor_table().get_string(
+        ), stevens_repository.instructor_table_db(DB_FILE).get_string())
 
 
 if __name__ == "__main__":

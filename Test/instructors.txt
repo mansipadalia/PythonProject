@@ -1,5 +1,5 @@
-CWID|Instructor|Dept
-1|Einstein, A|CS
-2|Feynman, R|SSW
-3|Newton, I|SSW
-4|Hawking, S|CS
+CWID	Name	Dept
+1	Einstein, A	CS
+2	Feynman, R	SSW
+3	Newton, I	SSW
+4	Hawking, S	CS

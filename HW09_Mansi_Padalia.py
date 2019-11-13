@@ -7,18 +7,19 @@ Date: 10/28/2019
 
 from collections import defaultdict
 import os
+import sqlite3
 from prettytable import PrettyTable
 
 
 class Repository():
     """ stores students, instructors, grades and majors for a university """
-    students = dict()
-    instructors = dict()
-    majors = dict()
 
     def __init__(self, directory):
         """ initializes the directory path for the university and reads the students, instructors, grades and majors files """
         self.directory = directory
+        self.students = dict()
+        self.instructors = dict()
+        self.majors = dict()
         try:
             self.get_majors()
             self.get_students()
@@ -30,7 +31,7 @@ class Repository():
     def get_students(self):
         """ reads the students file for the university and stored it in repository """
         student_records = read_file_generator(
-            self.directory, 'students.txt', 3, ';', True)
+            self.directory, 'students.txt', 3, '\t', True)
         for cwid, name, major in student_records:
             if major in self.majors.keys():
                 self.students[cwid] = Student(cwid, name, major)
@@ -41,14 +42,14 @@ class Repository():
     def get_instructors(self):
         """ reads the instructors file for the university and stored it in repository """
         instructor_records = read_file_generator(
-            self.directory, 'instructors.txt', 3, '|', True)
+            self.directory, 'instructors.txt', 3, '\t', True)
         for cwid, name, department in instructor_records:
             self.instructors[cwid] = Instructor(cwid, name, department)
 
     def get_grades(self):
         """ reads the grades file for the university and link it with students and instructors in repository """
         grade_records = read_file_generator(
-            self.directory, 'grades.txt', 4, '|', True)
+            self.directory, 'grades.txt', 4, '\t', True)
         for student_cwid, course, letter_grade, instructor_cwid in grade_records:
             if student_cwid in self.students.keys():
                 self.students[student_cwid].student_courses = (
@@ -98,11 +99,27 @@ class Repository():
         """ prints out the pretty table for instructors """
         instructor_table = PrettyTable(
             field_names=['CWID', 'Name', 'Dept', 'Course', 'Students'])
-        for cwid, instructor in self.instructors.items():
-            for course in instructor.instructor_courses:
+        for cwid, instructor in sorted(self.instructors.items()):
+            for course in sorted(instructor.instructor_courses):
                 instructor_table.add_row(
                     [cwid, instructor.name, instructor.department, course, instructor.instructor_courses[course]])
         return instructor_table
+
+    def instructor_table_db(self, db_path):
+        """ create an instructor PrettyTable that retrieves the data for the table from the database """
+        instructor_db_table = PrettyTable(
+            field_names=['CWID', 'Name', 'Dept', 'Course', 'Students'])
+        db = sqlite3.connect(db_path)
+        query = """ select I.CWID, I.Name, I.Dept, G.Course, count(distinct (S.CWID)) as Students
+                                from Instructor I
+                                inner join Grade G on G.InstructorCWID = I.CWID
+                                inner join Student S on G.StudentCWID = S.CWID
+                                group by I.CWID, I.Name, I.Dept, G.Course
+                                order by I.CWID, G.course; """
+        for row in db.execute(query):
+            instructor_db_table.add_row(row)
+        db.close()
+        return instructor_db_table
 
 
 class Student:
@@ -240,6 +257,7 @@ def read_file_generator(directory, filename, fields, sep='\t', header=False):
 def main():
     """ framework for the project to summarize student and instructor data """
     stevens_directory = '/Volumes/Macintosh HD/Users/pratik/Courses/SSW810A/PythonProject/Stevens'
+    DB_FILE = '/Volumes/Macintosh HD/Users/pratik/ssw810a.db'
     try:
         stevens_repository = Repository(stevens_directory)
         print("Majors Summary")
@@ -248,6 +266,8 @@ def main():
         print(stevens_repository.student_table())
         print("Instructor Summary")
         print(stevens_repository.instructor_table())
+        print("Instructor Summary from Database")
+        print(stevens_repository.instructor_table_db(DB_FILE))
     except Exception as err:
         print(f"{err.__class__.__name__}: {err}")
 
