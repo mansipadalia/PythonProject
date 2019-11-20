@@ -8,8 +8,11 @@ Date: 10/28/2019
 from collections import defaultdict
 import os
 import sqlite3
+from flask import Flask, render_template
 from prettytable import PrettyTable
 
+
+app = Flask(__name__)
 
 class Repository():
     """ stores students, instructors, grades and majors for a university """
@@ -120,7 +123,7 @@ class Repository():
             instructor_db_table.add_row(row)
         db.close()
         return instructor_db_table
-
+        
 
 class Student:
     """ a class to store student information"""
@@ -253,6 +256,36 @@ def read_file_generator(directory, filename, fields, sep='\t', header=False):
                     continue
                 yield(tuple(words_list))
 
+@app.route('/instructors')
+def instructor_summary():
+    """ returns a json object list for all instructors in the database """
+    db_path = '/Volumes/Macintosh HD/Users/pratik/ssw810a.db'
+
+    try:
+        db = sqlite3.connect(db_path)
+    except sqlite3.OperationalError:
+        return f"Error: Unable to open database at {db_path}"
+    else:
+        query = """ select I.CWID, I.Name, I.Dept, G.Course, count(distinct (S.CWID)) as Students
+                                from Instructor I
+                                inner join Grade G on G.InstructorCWID = I.CWID
+                                inner join Student S on G.StudentCWID = S.CWID
+                                group by I.CWID, I.Name, I.Dept, G.Course
+                                order by I.CWID, G.course; """
+
+        # convert the query results into a list of dictionaries to pass to the template
+        data = [{'cwid': cwid, 'name': name, 'dept': dept, 'course': course, 'students': students}
+                for cwid, name, dept, course, students in db.execute(query)]
+
+        db.close() # closing the database connection
+
+        return render_template(
+            'instructors.html',
+            title = 'Stevens Repository',
+            table_title = 'Courses and student counts',
+            instructors = data
+        )
+
 
 def main():
     """ framework for the project to summarize student and instructor data """
@@ -274,3 +307,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+app.run(debug=True)
